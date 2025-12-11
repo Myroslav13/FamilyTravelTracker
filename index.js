@@ -34,18 +34,41 @@ async function getAllUsers() {
   return result.rows;
 }
 
+async function addNewUser(name, color) {
+  const result = await db.query("INSERT INTO users (name, color) VALUES ($1, $2) RETURNING id", [name, color]);
+  console.log(result);
+  const userId = result.rows[0].id;
+  
+  return userId;
+}
+
 app.get("/", async (req, res) => {
   countries = await getUsersData(currentUserId);
   users = await getAllUsers();
-  console.log(users);
   total = countries.length;
-  color = users[currentUserId-1].color;
+  const currentUser = users.find(user => user.id === currentUserId);
+  color = currentUser.color;
+
   res.render("index.ejs", {users: users, total: total, color: color, countries: countries});
 });
 
 app.post("/user", (req, res) => {
-  const userId = parseInt(req.body.user);
-  currentUserId = userId;
+  if (req.body.add == "new") {
+    res.render("new.ejs");
+  } else {
+    const userId = parseInt(req.body.user);
+    currentUserId = userId;
+
+    res.redirect("/");
+  }
+});
+
+app.post("/new", async (req, res) => {
+  const color = req.body.color;
+  const name = req.body.name;
+
+  const result = await addNewUser(name, color);
+  currentUserId = result;
 
   res.redirect("/");
 });
