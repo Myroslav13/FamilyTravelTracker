@@ -5,7 +5,7 @@ const app = express();
 const port = 3000;
 
 var users = [], countries = [], total = 0, color = "red";
-var currentUser = 1;
+var currentUserId = 1;
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -35,12 +35,19 @@ async function getAllUsers() {
 }
 
 app.get("/", async (req, res) => {
-  countries = await getUsersData(currentUser);
+  countries = await getUsersData(currentUserId);
   users = await getAllUsers();
   console.log(users);
   total = countries.length;
-  color = users[currentUser].color;
+  color = users[currentUserId-1].color;
   res.render("index.ejs", {users: users, total: total, color: color, countries: countries});
+});
+
+app.post("/user", (req, res) => {
+  const userId = parseInt(req.body.user);
+  currentUserId = userId;
+
+  res.redirect("/");
 });
 
 app.listen(port, () => {
