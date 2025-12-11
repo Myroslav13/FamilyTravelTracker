@@ -4,7 +4,11 @@ import pg from 'pg';
 const app = express();
 const port = 3000;
 
-var users = [], countries = [], total = 0, color = "red";
+var users = [
+  { id: 1, name: "Angela", color: "teal" },
+  { id: 2, name: "Jack", color: "powderblue" },
+];
+var countries = [], total = 0, color = "red";
 var currentUserId = 1;
 
 app.use(express.urlencoded({ extended: true }));
@@ -42,12 +46,16 @@ async function addNewUser(name, color) {
   return userId;
 }
 
-app.get("/", async (req, res) => {
-  countries = await getUsersData(currentUserId);
+async function getAllUsersData(currentUserId) {
   users = await getAllUsers();
+  var currentUser = users.find(user => user.id == currentUserId);
+  countries = await getUsersData(currentUserId);
   total = countries.length;
-  const currentUser = users.find(user => user.id === currentUserId);
   color = currentUser.color;
+}
+
+app.get("/", async (req, res) => {
+  await getAllUsersData(currentUserId);
 
   res.render("index.ejs", {users: users, total: total, color: color, countries: countries});
 });
@@ -63,6 +71,7 @@ app.post("/user", (req, res) => {
   }
 });
 
+// Adding a new family member
 app.post("/new", async (req, res) => {
   const color = req.body.color;
   const name = req.body.name;
@@ -71,6 +80,24 @@ app.post("/new", async (req, res) => {
   currentUserId = result;
 
   res.redirect("/");
+});
+
+// Adding a new country
+app.post("/add", async (req, res) => {
+  const country_name = req.body.country;
+  try{ 
+    const result = await db.query("SELECT country_code FROM countries WHERE country_name ILIKE $1", [`%${country_name}%`]);
+    const country_code = result.rows[0].country_code;
+
+    await db.query("INSERT INTO visited_countries (country_code, user_id) VALUES ($1, $2)", [country_code, currentUserId]);
+
+    res.redirect("/");
+  } catch (error) {
+    console.error(error);
+    await getAllUsersData(currentUserId);
+    
+    res.render("index.ejs", {users: users, total: total, color: color, countries: countries, error: "Enter the right name of the country"});
+  }
 });
 
 app.listen(port, () => {
